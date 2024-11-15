@@ -329,7 +329,6 @@ with tabs[1]:
             if selected_week:
                 st.write(f"Selected Week: {selected_week} | Selected Shift: {selected_shift_weekly}")
 
-                # Filter the dataframe for the selected week and shift
                 if selected_shift_weekly == 'All':
                     weekly_filtered_df = merged_df[merged_df['Week'] == selected_week]
                 else:
@@ -344,7 +343,6 @@ with tabs[1]:
                     col1, col2, col3 = st.columns(3)
 
                     with col1:
-                        # Trend Data for Line Chart
                         trend_data = weekly_filtered_df.groupby(['Scheduled Date', 'Compliance']).size().unstack(fill_value=0).reset_index()
 
                         if view_option_weekly == 'Pivot Tables':
@@ -353,7 +351,6 @@ with tabs[1]:
                         else:
                             fig = go.Figure()
 
-                            # Add 'On Time' line to the chart
                             if 'On Time' in trend_data.columns:
                                 fig.add_trace(go.Scatter(
                                     x=trend_data['Scheduled Date'], 
@@ -361,12 +358,11 @@ with tabs[1]:
                                     mode='lines+markers+text',
                                     name='On Time',
                                     line=dict(color='green'),
-                                    text=trend_data['On Time'],  # Add counts as text labels
-                                    textposition='top center',  # Position text above points
+                                    text=trend_data['On Time'],
+                                    textposition='top center',
                                     textfont=dict(color='white')
                                 ))
 
-                            # Add 'Late' line to the chart
                             if 'Late' in trend_data.columns:
                                 fig.add_trace(go.Scatter(
                                     x=trend_data['Scheduled Date'], 
@@ -374,7 +370,7 @@ with tabs[1]:
                                     mode='lines+markers+text',
                                     name='Late',
                                     line=dict(color='red'),
-                                    text=trend_data['Late'],  # Add counts as text labels
+                                    text=trend_data['Late'],
                                     textposition='top center',
                                     textfont=dict(color='white')
                                 ))
@@ -382,12 +378,7 @@ with tabs[1]:
                             fig.update_layout(title="On Time vs. Late Compliance Trend (Weekly)", xaxis_title="Date", yaxis_title="Shipment Count")
                             st.plotly_chart(fig, use_container_width=True)
 
-                    # The rest of your columns (col2 and col3) remain unchanged, showing other relevant metrics as desired.
-                    # The remaining sections follow similarly to display dwell time and carrier compliance as described above.
-
-
                     with col2:
-                        # Dwell Time Category Pivot Table (Weekly)
                         weekly_filtered_df['Dwell Time Category'] = pd.cut(
                             weekly_filtered_df['Dwell Time (Hours)'],
                             bins=[-np.inf, 0, 1, 2, 3, np.inf],
@@ -422,7 +413,6 @@ with tabs[1]:
                             st.plotly_chart(fig, use_container_width=True)
 
                     with col3:
-                        # Average Dwell Time by Visit Type (Weekly)
                         dwell_average_pivot_weekly = weekly_filtered_df.pivot_table(
                             values='Dwell Time (Hours)',
                             index='Visit Type',
@@ -460,7 +450,6 @@ with tabs[1]:
                             fig.update_layout(barmode='group', title="Average Dwell Time by Visit Type (Weekly)")
                             st.plotly_chart(fig, use_container_width=True)
 
-                    # Carrier Pivot Table (Weekly)
                     carrier_pivot_weekly = weekly_filtered_df.pivot_table(
                         values='Shipment Num',
                         index='Carrier',
@@ -490,14 +479,12 @@ with tabs[1]:
         with st.expander("Monthly Breakdown"):
             st.write("The visualizations below show the monthly breakdown of on-time and late shipments.")
 
-            # Use number input for selecting month (1-12)
             selected_month = st.number_input("Select Month for Monthly Dashboard", min_value=1, max_value=12, step=1)
             selected_shift_monthly = st.selectbox("Select Shift for Filtering", options=shift_options, key="monthly_shift_select")
 
             if selected_month:
                 st.write(f"Selected Month: {selected_month} | Selected Shift: {selected_shift_monthly}")
 
-                # Filter the dataframe for the selected month and shift
                 if selected_shift_monthly == 'All':
                     monthly_filtered_df = merged_df[merged_df['Month'] == selected_month]
                 else:
@@ -512,7 +499,6 @@ with tabs[1]:
                     col1, col2, col3 = st.columns(3)
 
                     with col1:
-                        # Trend Data for Line Chart (Monthly)
                         trend_data = monthly_filtered_df.groupby(['Scheduled Date', 'Compliance']).size().unstack(fill_value=0).reset_index()
 
                         if view_option_monthly == 'Pivot Tables':
@@ -521,7 +507,6 @@ with tabs[1]:
                         else:
                             fig = go.Figure()
 
-                            # Add 'On Time' line to the chart
                             if 'On Time' in trend_data.columns:
                                 fig.add_trace(go.Scatter(
                                     x=trend_data['Scheduled Date'], 
@@ -529,12 +514,11 @@ with tabs[1]:
                                     mode='lines+markers+text',
                                     name='On Time',
                                     line=dict(color='green'),
-                                    text=trend_data['On Time'],  # Add counts as text labels
-                                    textposition='top center',  # Position text above points
+                                    text=trend_data['On Time'],
+                                    textposition='top center',
                                     textfont=dict(color='white')
                                 ))
 
-                            # Add 'Late' line to the chart
                             if 'Late' in trend_data.columns:
                                 fig.add_trace(go.Scatter(
                                     x=trend_data['Scheduled Date'], 
@@ -542,7 +526,7 @@ with tabs[1]:
                                     mode='lines+markers+text',
                                     name='Late',
                                     line=dict(color='red'),
-                                    text=trend_data['Late'],  # Add counts as text labels
+                                    text=trend_data['Late'],
                                     textposition='top center',
                                     textfont=dict(color='white')
                                 ))
@@ -551,7 +535,6 @@ with tabs[1]:
                             st.plotly_chart(fig, use_container_width=True)
 
                     with col2:
-                        # Dwell Time Category Pivot Table (Monthly)
                         monthly_filtered_df['Dwell Time Category'] = pd.cut(
                             monthly_filtered_df['Dwell Time (Hours)'],
                             bins=[-np.inf, 0, 1, 2, 3, np.inf],
@@ -586,7 +569,6 @@ with tabs[1]:
                             st.plotly_chart(fig, use_container_width=True)
 
                     with col3:
-                        # Average Dwell Time by Visit Type (Monthly)
                         dwell_average_pivot_monthly = monthly_filtered_df.pivot_table(
                             values='Dwell Time (Hours)',
                             index='Visit Type',
@@ -624,7 +606,6 @@ with tabs[1]:
                             fig.update_layout(barmode='group', title="Average Dwell Time by Visit Type (Monthly)")
                             st.plotly_chart(fig, use_container_width=True)
 
-                    # Carrier Pivot Table (Monthly)
                     carrier_pivot_monthly = monthly_filtered_df.pivot_table(
                         values='Shipment Num',
                         index='Carrier',
@@ -654,27 +635,21 @@ with tabs[1]:
         with st.expander("YTD Breakdown"):
             st.write("The visualizations below show the year-to-date breakdown of on-time and late shipments.")
 
-            # Shift filter
             selected_shift_ytd = st.selectbox("Select Shift for Filtering", options=shift_options, key="ytd_shift_select")
 
-            # Filter the dataframe based on selected shift
             if selected_shift_ytd == 'All':
                 ytd_filtered_df = merged_df
             else:
                 ytd_filtered_df = merged_df[merged_df['Shift'] == selected_shift_ytd]
 
-            # Group data by 'Scheduled Date' and 'Compliance' for YTD analysis
             trend_data = ytd_filtered_df.groupby(['Scheduled Date', 'Compliance']).size().unstack(fill_value=0).reset_index()
             trend_data['Scheduled Date'] = pd.to_datetime(trend_data['Scheduled Date'])
 
-            # Extract month and year for grouping
             trend_data['Month'] = trend_data['Scheduled Date'].dt.to_period('M')
 
-            # Group by month to calculate average counts for each compliance category
             monthly_avg = trend_data.groupby('Month').mean(numeric_only=True).reset_index()
             monthly_avg['Month'] = monthly_avg['Month'].dt.to_timestamp()
 
-            # Round values for displaying in text
             monthly_avg['On Time Rounded'] = monthly_avg['On Time'].round() if 'On Time' in monthly_avg.columns else 0
             monthly_avg['Late Rounded'] = monthly_avg['Late'].round() if 'Late' in monthly_avg.columns else 0
 
@@ -687,10 +662,8 @@ with tabs[1]:
                     st.subheader("Monthly Average Compliance (YTD)")
                     st.write(monthly_avg[['Month', 'On Time', 'Late']])
                 else:
-                    # Create line chart for monthly average compliance trend
                     fig = go.Figure()
 
-                    # Add 'On Time' line to the chart
                     if 'On Time' in monthly_avg.columns:
                         fig.add_trace(go.Scatter(
                             x=monthly_avg['Month'], 
@@ -702,7 +675,6 @@ with tabs[1]:
                             textposition='top center'
                         ))
 
-                    # Add 'Late' line to the chart
                     if 'Late' in monthly_avg.columns:
                         fig.add_trace(go.Scatter(
                             x=monthly_avg['Month'], 
@@ -725,7 +697,6 @@ with tabs[1]:
                     st.plotly_chart(fig, use_container_width=True, key="ytd_line_chart")
 
             with col2:
-                # Dwell Time Category Pivot Table (YTD)
                 ytd_filtered_df['Dwell Time Category'] = pd.cut(
                     ytd_filtered_df['Dwell Time (Hours)'],
                     bins=[-np.inf, 0, 1, 2, 3, np.inf],
@@ -760,7 +731,6 @@ with tabs[1]:
                     st.plotly_chart(fig, use_container_width=True)
 
             with col3:
-                # Average Dwell Time by Visit Type (YTD)
                 dwell_average_pivot_ytd = ytd_filtered_df.pivot_table(
                     values='Dwell Time (Hours)',
                     index='Visit Type',
@@ -798,7 +768,6 @@ with tabs[1]:
                     fig.update_layout(barmode='group', title="Average Dwell Time by Visit Type (YTD)")
                     st.plotly_chart(fig, use_container_width=True)
 
-            # Carrier Pivot Table (YTD)
             carrier_pivot_ytd = ytd_filtered_df.pivot_table(
                 values='Shipment Num',
                 index='Carrier',
@@ -830,14 +799,11 @@ with tabs[2]:
     if 'load_times' in st.session_state:
         st.header("Load Time Compliance Dashboard")
 
-        # Filter options for Shift and Order Type
         shift_filter = st.radio("Select Shift for Filtering", options=['All'] + list(load_times['Shift'].unique()))
         order_type_filter = st.radio("Select Order Type for Filtering", options=['All'] + list(load_times['Order Type'].unique()))
 
-        # Calculate compliance (under 90 minutes) and add to the original load_times dataframe
         load_times['Compliance'] = load_times['Load Time (minutes)'].apply(lambda x: "Compliant" if x <= 90 else "Non-Compliant")
 
-        # Apply filters to load_times dataframe to create filtered_load_times
         filtered_load_times = load_times.copy()
         if shift_filter != 'All':
             filtered_load_times = filtered_load_times[filtered_load_times['Shift'] == shift_filter]
@@ -846,16 +812,13 @@ with tabs[2]:
 
         st.write(f"Displaying data for Shift: **{shift_filter}** and Order Type: **{order_type_filter}**")
 
-        # Compliance rate calculation for filtered data
         compliance_rate = round(filtered_load_times['Compliance'].value_counts(normalize=True).get("Compliant", 0) * 100, 2)
 
         st.subheader(f"Load Time Compliance Rate: {compliance_rate}%")
 
-        # Set up columns for the first three visualizations
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            # Visualization 1: Compliance Rate Pie Chart with Red and Green Colors
             fig1 = go.Figure(data=[go.Pie(
                 labels=filtered_load_times['Compliance'].value_counts().index,
                 values=filtered_load_times['Compliance'].value_counts().values,
@@ -866,32 +829,46 @@ with tabs[2]:
             st.plotly_chart(fig1, use_container_width=True)
 
         with col2:
-            # Define custom bins and color mapping
-            bins = np.linspace(0, filtered_load_times['Load Time (minutes)'].max(), 30)
-            colors = ['green' if x < 90 else 'yellow' if x < 150 else 'red' for x in bins]
+            max_load_time = filtered_load_times['Load Time (minutes)'].max()
+            bins = np.linspace(0, max_load_time, 30)
+            bin_centers = (bins[:-1] + bins[1:]) / 2
 
-            # Create a histogram and display the frequency count within each bar
-            fig2 = go.Figure(data=[go.Histogram(
-                x=filtered_load_times['Load Time (minutes)'],
-                nbinsx=30,
-                marker=dict(
-                    color=colors,
-                    line=dict(color='black', width=0.5)  # Optional: Add a border to enhance contrast
-                ),
-                texttemplate='%{y}',  # Show frequency count inside the bars
-                textposition='auto'  # Position text inside the bars
-            )])
+            colors = ['green' if x <= 90 else 'red' for x in bin_centers]
 
+            fig2 = go.Figure()
+
+            for i in range(len(bins) - 1):
+                bin_data = filtered_load_times[
+                    (filtered_load_times['Load Time (minutes)'] >= bins[i]) &
+                    (filtered_load_times['Load Time (minutes)'] < bins[i+1])
+                ]
+                frequency = len(bin_data)
+
+                fig2.add_trace(go.Bar(
+                    x=[(bins[i] + bins[i+1]) / 2],
+                    y=[frequency],
+                    marker=dict(
+                        color=colors[i],
+                        line=dict(color='black', width=0.5)
+                    ),
+                    text=f"{frequency}",
+                    textposition='outside',
+                    name=f'{bins[i]:.2f} - {bins[i+1]:.2f}',
+                    showlegend=False
+                ))
+
+            # Update layout
             fig2.update_layout(
-                title="Distribution of Load Times (Minutes)",
+                title="Distribution of Load Times (Minutes) with Frequencies",
                 xaxis_title="Load Time (minutes)",
-                yaxis_title="Frequency"
+                yaxis_title="Frequency",
+                bargap=0.1 
             )
+
             st.plotly_chart(fig2, use_container_width=True)
 
 
         with col3:
-            # Visualization 3: Average Load Time by Compliance with Red and Green Bars
             avg_load_time_compliance = filtered_load_times.groupby('Compliance')['Load Time (minutes)'].mean().reset_index()
             fig3 = go.Figure(data=[go.Bar(
                 x=avg_load_time_compliance['Compliance'],
@@ -907,16 +884,14 @@ with tabs[2]:
             )
             st.plotly_chart(fig3, use_container_width=True)
 
-        # Compliance by Shift and Order Type
         compliance_by_shift_order = load_times.pivot_table(
-            values='Order Num',  # Assuming 'Order Num' is a unique identifier for count
+            values='Order Num',
             index='Shift',
             columns='Compliance',
             aggfunc='count',
             fill_value=0
         ).reset_index()
 
-        # Adding Total and Compliance Rate columns
         compliance_by_shift_order['Total'] = (
             compliance_by_shift_order['Compliant'] + compliance_by_shift_order['Non-Compliant']
         )
@@ -924,23 +899,20 @@ with tabs[2]:
             (compliance_by_shift_order['Compliant'] / compliance_by_shift_order['Total']) * 100, 2
         )
 
-        # Sort by descending Compliance Rate
         compliance_by_shift_order = compliance_by_shift_order.sort_values(by='Compliance Rate (%)', ascending=False).reset_index(drop=True)
 
-        # Preparing text annotations to show both compliance rate and total loads per shift
         heatmap_text = [
             f"{row['Compliance Rate (%)']}%<br>out of {row['Total']} loads"
             for _, row in compliance_by_shift_order.iterrows()
         ]
 
-        # Displaying the heatmap with added compliance rate and total loads per shift in each cell, sorted by Compliance Rate
         st.subheader("Compliance Rate Heatmap by Shift with Total Loads")
 
         fig5 = go.Figure(data=go.Heatmap(
             z=[compliance_by_shift_order['Compliance Rate (%)']],
             x=compliance_by_shift_order['Shift'],
             y=['Compliance Rate'],
-            colorscale='RdYlGn',  # Red for lower values, Green for higher values
+            colorscale='RdYlGn',
             text=[heatmap_text],
             texttemplate="%{text}"
         ))
