@@ -1052,10 +1052,18 @@ with tabs[2]:
                         fill_value=0
                     ).reset_index()
 
+                    # Ensure required columns exist
+                    required_columns = ['Compliant', 'Non-Compliant']
+                    for col in required_columns:
+                        if col not in compliance_by_user.columns:
+                            compliance_by_user[col] = 0
+
+                    # Calculate totals and compliance rate
                     compliance_by_user['Total'] = compliance_by_user['Compliant'] + compliance_by_user['Non-Compliant']
                     compliance_by_user['Compliance Rate (%)'] = round(
-                        (compliance_by_user['Compliant'] / compliance_by_user['Total']) * 100, 2
+                        (compliance_by_user['Compliant'] / compliance_by_user['Total'].replace(0, 1)) * 100, 2
                     )
+
 
                     compliance_by_user['User Id'] = compliance_by_user['User Id'].astype(str)
 
@@ -1150,6 +1158,9 @@ with tabs[2]:
                     fill_value=0
                 ).reset_index()
 
+                compliance_by_filter_pivot['Compliant'] = compliance_by_filter_pivot.get('Compliant', 0)
+                compliance_by_filter_pivot['Non-Compliant'] = compliance_by_filter_pivot.get('Non-Compliant', 0)
+
                 compliance_by_filter_pivot['Total'] = (
                     compliance_by_filter_pivot['Compliant'] + compliance_by_filter_pivot['Non-Compliant']
                 )
@@ -1163,6 +1174,7 @@ with tabs[2]:
 
                 st.subheader(f"Compliance by {filter_by} Pivot Table (Sorted by Compliance Rate %)")
                 st.dataframe(compliance_by_filter_pivot)
+
 
                 pivot_tables = {
                     "Compliance Distribution": compliance_pivot,
