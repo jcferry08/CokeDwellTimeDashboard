@@ -909,18 +909,17 @@ with tabs[2]:
             filter_by = st.selectbox("Filter By", options=["Shift", "User"])
 
             if filter_by == "Shift":
-                shift_filter = st.selectbox("Select Shift", options=["All"] + list(load_times['Shift'].unique()))
+                filter_value = st.selectbox("Select Shift", options=["All"] + list(load_times['Shift'].unique()))
+                filter_column = 'Shift'
             elif filter_by == "User":
-                user_filter = st.selectbox("Select User ID", options=["All"] + list(load_times['User Id'].unique()))
-            order_type_filter = st.selectbox("Select Order Type for Filtering", options=['All'] + list(load_times['Order Type'].unique()))
+                filter_value = st.selectbox("Select User ID", options=["All"] + list(load_times['User Id'].unique()))
+                filter_column = 'User Id'
 
             filtered_load_times = date_filtered_load_times.copy()
-            if filter_by == "Shift" and shift_filter != "All":
-                filtered_load_times = filtered_load_times[filtered_load_times['Shift'] == shift_filter]
-            elif filter_by == "User" and user_filter != "All":
-                filtered_load_times = filtered_load_times[filtered_load_times['User Id'] == user_filter]
+            if filter_value != "All":
+                filtered_load_times = filtered_load_times[filtered_load_times[filter_column] == filter_value]
 
-            st.write(f"Displaying data for **{filter_by}**: **{'All' if (filter_by == 'Shift' and shift_filter == 'All') or (filter_by == 'User' and user_filter == 'All') else shift_filter if filter_by == 'Shift' else user_filter}**")
+            st.write(f"Displaying data for **{filter_by}**: **{'All' if filter_value == 'All' else filter_value}**")
 
             compliance_rate = round(filtered_load_times['Compliance'].value_counts(normalize=True).get("Compliant", 0) * 100, 2)
 
@@ -972,7 +971,7 @@ with tabs[2]:
                         title="Distribution of Load Times (Minutes) with Frequencies",
                         xaxis_title="Load Time (minutes)",
                         yaxis_title="Frequency",
-                        bargap=0.1 
+                        bargap=0.1
                     )
                     st.plotly_chart(fig2, use_container_width=True)
 
@@ -992,55 +991,107 @@ with tabs[2]:
                     )
                     st.plotly_chart(fig3, use_container_width=True)
 
-                compliance_by_shift_order = date_filtered_load_times.pivot_table(
-                    values='Order Num',
-                    index='Shift',
-                    columns='Compliance',
-                    aggfunc='count',
-                    fill_value=0
-                ).reset_index()
+                if filter_by == "Shift":
+                    compliance_by_shift = filtered_load_times.pivot_table(
+                        values='Order Num',
+                        index='Shift',
+                        columns='Compliance',
+                        aggfunc='count',
+                        fill_value=0
+                    ).reset_index()
 
-                compliance_by_shift_order['Total'] = (
-                    compliance_by_shift_order['Compliant'] + compliance_by_shift_order['Non-Compliant']
-                )
-                compliance_by_shift_order['Compliance Rate (%)'] = round(
-                    (compliance_by_shift_order['Compliant'] / compliance_by_shift_order['Total']) * 100, 2
-                )
-
-                compliance_by_shift_order.sort_values('Compliance Rate (%)', ascending=False, inplace=True)
-
-                heatmap_text = [
-                    f"{row['Compliance Rate (%)']}%<br>out of {row['Total']} loads"
-                    for _, row in compliance_by_shift_order.iterrows()
-                ]
-
-                st.subheader("Compliance Rate Heatmap by Shift with Total Loads")
-                compliance_rates = compliance_by_shift_order['Compliance Rate (%)'].values.reshape(1, -1)
-
-                fig5 = go.Figure(data=go.Heatmap(
-                    z=compliance_rates,
-                    x=compliance_by_shift_order['Shift'],
-                    y=['Compliance Rate'],
-                    colorscale='RdYlGn',
-                    text=compliance_rates.round(2).astype(str) + "%",
-                    texttemplate="<b>%{text}</b>",
-                    textfont=dict(size=16),
-                    colorbar=dict(title="Compliance %")
-                ))
-
-                fig5.update_layout(
-                    xaxis=dict(
-                        title="Shift",
-                        tickmode='array',
-                        tickvals=compliance_by_shift_order['Shift']
-                    ),
-                    yaxis=dict(
-                        title="",
-                        showticklabels=False 
+                    compliance_by_shift['Total'] = compliance_by_shift['Compliant'] + compliance_by_shift['Non-Compliant']
+                    compliance_by_shift['Compliance Rate (%)'] = round(
+                        (compliance_by_shift['Compliant'] / compliance_by_shift['Total']) * 100, 2
                     )
-                )
 
-                st.plotly_chart(fig5, use_container_width=True)
+                    compliance_by_shift.sort_values('Compliance Rate (%)', ascending=False, inplace=True)
+
+                    heatmap_text = [
+                        f"{row['Compliance Rate (%)']}%<br>out of {row['Total']} loads"
+                        for _, row in compliance_by_shift.iterrows()
+                    ]
+
+                    st.subheader("Compliance Rate Heatmap by Shift with Total Loads")
+                    compliance_rates = compliance_by_shift['Compliance Rate (%)'].values.reshape(1, -1)
+
+                    fig_shift = go.Figure(data=go.Heatmap(
+                        z=compliance_rates,
+                        x=compliance_by_shift['Shift'],
+                        y=['Shift Compliance Rate'],
+                        colorscale='RdYlGn',
+                        text=compliance_rates.round(2).astype(str) + "%",
+                        texttemplate="<b>%{text}</b>",
+                        textfont=dict(size=14),
+                        colorbar=dict(title="Compliance %")
+                    ))
+
+                    fig_shift.update_layout(
+                        xaxis=dict(
+                            title="Shift",
+                            tickmode='array',
+                            tickvals=compliance_by_shift['Shift'],
+                            automargin=True
+                        ),
+                        yaxis=dict(
+                            title="",
+                            showticklabels=False
+                        ),
+                        height=400,
+                        margin=dict(l=50, r=50, t=50, b=150)
+                    )
+
+                    st.plotly_chart(fig_shift, use_container_width=True)
+
+                if filter_by == "User":
+                    compliance_by_user = filtered_load_times.pivot_table(
+                        values='Order Num',
+                        index='User Id',
+                        columns='Compliance',
+                        aggfunc='count',
+                        fill_value=0
+                    ).reset_index()
+
+                    compliance_by_user['Total'] = compliance_by_user['Compliant'] + compliance_by_user['Non-Compliant']
+                    compliance_by_user['Compliance Rate (%)'] = round(
+                        (compliance_by_user['Compliant'] / compliance_by_user['Total']) * 100, 2
+                    )
+
+                    compliance_by_user['User Id'] = compliance_by_user['User Id'].astype(str)
+
+                    if compliance_by_user.empty:
+                        st.warning("No data available.")
+                    else:
+                        compliance_by_user.sort_values('Compliance Rate (%)', ascending=False, inplace=True)
+
+                        st.subheader("Compliance Rate Heatmap by User with Total Loads")
+
+                        fig_user = go.Figure(data=go.Heatmap(
+                            z=compliance_by_user['Compliance Rate (%)'].values.reshape(1, -1),
+                            x=compliance_by_user['User Id'],
+                            y=['Compliance Rate %'],
+                            colorscale='RdYlGn',
+                        ))
+
+                        fig_user.update_layout(
+                            title="Compliance Rate by User",
+                            xaxis=dict(
+                                title="User Id",
+                                type="category",
+                                tickmode="array",
+                                tickvals=compliance_by_user['User Id'],
+                                tickangle=45,
+                                automargin=True
+                            ),
+                            yaxis=dict(
+                                title="",
+                                showticklabels=False
+                            ),
+                            height=400,
+                            margin=dict(l=50, r=50, t=50, b=150)
+                        )
+
+                        st.plotly_chart(fig_user, use_container_width=True)
 
             elif display_mode == "Pivot Tables":
                 with col1:
@@ -1062,16 +1113,16 @@ with tabs[2]:
                     bin_labels = [f"{int(bins[i])} - {int(bins[i+1])}" for i in range(len(bins)-1)]
 
                     filtered_load_times['Load Time Bin (minutes)'] = pd.cut(
-                        filtered_load_times['Load Time (minutes)'], 
-                        bins=bins, 
-                        labels=bin_labels, 
+                        filtered_load_times['Load Time (minutes)'],
+                        bins=bins,
+                        labels=bin_labels,
                         include_lowest=True
                     )
 
                     frequency_table = filtered_load_times.pivot_table(
-                        values='Order Num', 
-                        index='Load Time Bin (minutes)', 
-                        aggfunc='count', 
+                        values='Order Num',
+                        index='Load Time Bin (minutes)',
+                        aggfunc='count',
                         fill_value=0
                     ).rename(columns={'Order Num': 'Frequency'}).reset_index()
 
@@ -1091,33 +1142,33 @@ with tabs[2]:
                     st.write("Average Load Time by Compliance Pivot Table")
                     st.dataframe(avg_load_time_pivot)
 
-                compliance_by_shift_pivot = date_filtered_load_times.pivot_table(
+                compliance_by_filter_pivot = filtered_load_times.pivot_table(
                     values='Order Num',
-                    index='Shift',
+                    index=filter_column,
                     columns='Compliance',
                     aggfunc='count',
                     fill_value=0
                 ).reset_index()
 
-                compliance_by_shift_pivot['Total'] = (
-                    compliance_by_shift_pivot['Compliant'] + compliance_by_shift_pivot['Non-Compliant']
+                compliance_by_filter_pivot['Total'] = (
+                    compliance_by_filter_pivot['Compliant'] + compliance_by_filter_pivot['Non-Compliant']
                 )
-                compliance_by_shift_pivot['Compliance Rate (%)'] = round(
-                    (compliance_by_shift_pivot['Compliant'] / compliance_by_shift_pivot['Total']) * 100, 2
+                compliance_by_filter_pivot['Compliance Rate (%)'] = round(
+                    (compliance_by_filter_pivot['Compliant'] / compliance_by_filter_pivot['Total']) * 100, 2
                 )
 
-                compliance_by_shift_pivot = compliance_by_shift_pivot.sort_values(
+                compliance_by_filter_pivot = compliance_by_filter_pivot.sort_values(
                     'Compliance Rate (%)', ascending=False
                 )
 
-                st.subheader("Compliance by Shift Pivot Table (Sorted by Compliance Rate %)")
-                st.dataframe(compliance_by_shift_pivot)
+                st.subheader(f"Compliance by {filter_by} Pivot Table (Sorted by Compliance Rate %)")
+                st.dataframe(compliance_by_filter_pivot)
 
                 pivot_tables = {
                     "Compliance Distribution": compliance_pivot,
                     "Load Times Statistics": frequency_table_with_total,
                     "Average Load Time": avg_load_time_pivot,
-                    "Compliance by Shift": compliance_by_shift_pivot
+                    f"Compliance by {filter_by}": compliance_by_filter_pivot
                 }
 
                 st.write("Download Pivot Tables as Excel")
@@ -1127,4 +1178,4 @@ with tabs[2]:
                     data=excel_file,
                     file_name="pivot_tables.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+                )
