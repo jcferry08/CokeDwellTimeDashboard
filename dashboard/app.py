@@ -1056,14 +1056,11 @@ with tabs[2]:
                     st.dataframe(compliance_pivot)
 
                 with col2:
-                    # Bin edges for grouping load times
                     max_load_time = filtered_load_times['Load Time (minutes)'].max()
                     bins = np.linspace(0, max_load_time, 30)
 
-                    # Bin labels
                     bin_labels = [f"{int(bins[i])} - {int(bins[i+1])}" for i in range(len(bins)-1)]
 
-                    # Assign bins to the load times
                     filtered_load_times['Load Time Bin (minutes)'] = pd.cut(
                         filtered_load_times['Load Time (minutes)'], 
                         bins=bins, 
@@ -1071,7 +1068,6 @@ with tabs[2]:
                         include_lowest=True
                     )
 
-                    # Create frequency table
                     frequency_table = filtered_load_times.pivot_table(
                         values='Order Num', 
                         index='Load Time Bin (minutes)', 
@@ -1079,16 +1075,13 @@ with tabs[2]:
                         fill_value=0
                     ).rename(columns={'Order Num': 'Frequency'}).reset_index()
 
-                    # Add total row
                     total_row = pd.DataFrame({
                         'Load Time Bin (minutes)': ['Total'],
                         'Frequency': [frequency_table['Frequency'].sum()]
                     })
 
-                    # Append the total row
                     frequency_table_with_total = pd.concat([frequency_table, total_row], ignore_index=True)
 
-                    # Display the modified table
                     st.write("Load Times Statistics Pivot Table (Frequency Distribution)")
                     st.dataframe(frequency_table_with_total)
 
@@ -1105,13 +1098,19 @@ with tabs[2]:
                     aggfunc='count',
                     fill_value=0
                 ).reset_index()
+
                 compliance_by_shift_pivot['Total'] = (
                     compliance_by_shift_pivot['Compliant'] + compliance_by_shift_pivot['Non-Compliant']
                 )
                 compliance_by_shift_pivot['Compliance Rate (%)'] = round(
                     (compliance_by_shift_pivot['Compliant'] / compliance_by_shift_pivot['Total']) * 100, 2
                 )
-                st.subheader("Compliance by Shift Pivot Table")
+
+                compliance_by_shift_pivot = compliance_by_shift_pivot.sort_values(
+                    'Compliance Rate (%)', ascending=False
+                )
+
+                st.subheader("Compliance by Shift Pivot Table (Sorted by Compliance Rate %)")
                 st.dataframe(compliance_by_shift_pivot)
 
                 pivot_tables = {
@@ -1129,7 +1128,3 @@ with tabs[2]:
                     file_name="pivot_tables.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-           
-
-
-
