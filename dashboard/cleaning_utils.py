@@ -1,33 +1,48 @@
 import pandas as pd
+import io
 
 def clean_activity_tracker(activity_report):
-
     activity_report.rename(columns={'ï»¿Create DateTime': 'Create DateTime', 'Order #': 'Order Num'}, inplace=True)
 
-    columns_to_keep = ['Create DateTime', 'Order Num']
+    columns_to_keep = ['Create DateTime', 'Order Num', 'User Id']
     activity_report = activity_report.drop(columns=activity_report.columns.difference(columns_to_keep))
 
     activity_report['Create DateTime'] = pd.to_datetime(activity_report['Create DateTime'])
 
+    activity_report['Date'] = activity_report['Create DateTime'].dt.date
+    activity_report['Date'] = activity_report['Date'].apply(lambda x: x.strftime('%m/%d/%Y'))
+    activity_report['Week'] = activity_report['Create DateTime'].dt.isocalendar().week
+    activity_report['Month'] = activity_report['Create DateTime'].dt.month
+
     order_groups = activity_report.groupby('Order Num')['Create DateTime']
     load_times = order_groups.agg(lambda x: round((x.max() - x.min()).total_seconds() / 60, 2)).reset_index()
     load_times.columns = ['Order Num', 'Load Time (minutes)']
-    
+
     shift_calendat_path = 'data/raw/Shift Calendar 2024.csv'
     shift_calendar = pd.read_csv(shift_calendat_path)
-
     shift_calendar['Date'] = pd.to_datetime(shift_calendar['Date'], format='%m/%d/%y')
 
     def get_shift(create_datetime):
         date = create_datetime.date()
         shift = '1' if 7 <= create_datetime.hour < 19 else '2'
-
         shift_color = shift_calendar.loc[shift_calendar['Date'] == pd.Timestamp(date), shift].values
         return shift_color[0] if shift_color.size > 0 else None
-    
+
     activity_report['Shift'] = activity_report['Create DateTime'].apply(get_shift)
-    activity_report['Order Type'] = activity_report['Order Num'].apply(lambda x: 'Shuttle' if x.startswith('02') else ('Customer Load' if x.startswith('04') else 'Unknown'))
-    additional_info = activity_report.groupby('Order Num').agg({'Shift': 'first', 'Order Type': 'first'}).reset_index()
+
+    activity_report['Order Type'] = activity_report['Order Num'].apply(
+        lambda x: 'Shuttle' if str(x).startswith('02') else ('Customer Load' if str(x).startswith('04') else 'Unknown')
+    )
+
+    additional_info = activity_report.groupby('Order Num').agg({
+        'User Id': 'first',
+        'Shift': 'first',
+        'Order Type': 'first',
+        'Date': 'first',
+        'Week': 'first',
+        'Month': 'first'
+    }).reset_index()
+
     load_times = load_times.merge(additional_info, on='Order Num', how='left')
 
     return load_times
@@ -92,3 +107,11 @@ def clean_trailer_activity(trailer_report):
     trailer_report['Shift'] = trailer_report['Checkin DateTime'].apply(get_shift)
 
     return trailer_report
+
+def create_excel_file(dataframes_dict):
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        for sheet_name, df in dataframes_dict.items():
+            df.to_excel(writer, sheet_name=sheet_name, index=False)
+    output.seek(0)
+    return output

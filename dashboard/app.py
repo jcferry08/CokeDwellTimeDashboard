@@ -3,7 +3,7 @@ import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 import duckdb
-from cleaning_utils import clean_activity_tracker, clean_order_view, clean_trailer_activity
+from cleaning_utils import clean_activity_tracker, clean_order_view, clean_trailer_activity, create_excel_file
 
 st.set_page_config(
     page_title="NFI Auburndale - Coca Cola Reporting Dashboard",
@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 st.title("NFI Auburndale - Coca Cola Reporting Dashboard")
-st.markdown('_Alpha V. 2.0.1')
+st.markdown('_Alpha V. 2.1.0')
 
 tabs = st.tabs(['Data Upload and Cleaned Data', 'Dwell and On Time Dashboard', 'Load Time Compliance'])
 
@@ -172,6 +172,9 @@ with tabs[1]:
         st.header("Dwell and On Time Compliance Dashboard")
 
         with st.expander("Daily Breakdown"):
+
+            daily_pivots = {}
+
             st.write("The visualizations below show the daily breakdown of on-time and late shipments.")
 
             selected_date = st.date_input("Select Date for Daily Dashboard")
@@ -207,6 +210,8 @@ with tabs[1]:
                         compliance_pivot['Grand Total'] = compliance_pivot.select_dtypes(include=[np.number]).sum(axis=1)
                         compliance_pivot['On Time %'] = round((compliance_pivot.get('On Time', 0) / compliance_pivot['Grand Total']) * 100, 2)
 
+                        daily_pivots['Daily On Time Compliance'] = compliance_pivot
+
                         if view_option == 'Pivot Tables':
                             st.subheader("On Time Compliance by Date")
                             st.write(compliance_pivot)
@@ -237,6 +242,8 @@ with tabs[1]:
                         ).reset_index()
                         dwell_count_pivot['Grand Total'] = dwell_count_pivot.select_dtypes(include=[np.number]).sum(axis=1)
 
+                        daily_pivots['Daily Dwell Time Distribution'] = dwell_count_pivot
+
                         if view_option == 'Pivot Tables':
                             st.subheader("Daily Count by Dwell Time")
                             st.table(dwell_count_pivot)
@@ -263,6 +270,8 @@ with tabs[1]:
                             columns='Compliance',
                             aggfunc='mean'
                         ).reset_index()
+
+                        daily_pivots['Daily Average Dwell Time'] = dwell_average_pivot
 
                         if view_option == 'Pivot Tables':
                             st.subheader("Average Dwell Time by Visit Type")
@@ -305,6 +314,8 @@ with tabs[1]:
                     carrier_pivot['On Time %'] = round((carrier_pivot.get('On Time', 0) / carrier_pivot['Grand Total']) * 100, 2)
                     carrier_pivot = carrier_pivot.sort_values(by='On Time %', ascending=False)
 
+                    daily_pivots['Daily Carrier Compliance'] = carrier_pivot
+
                     if view_option == 'Pivot Tables':
                         st.subheader("On Time Compliance by Carrier")
                         st.table(carrier_pivot)
@@ -319,8 +330,20 @@ with tabs[1]:
                         ))
                         fig.update_layout(title="On Time Compliance Percentage by Carrier", xaxis_tickangle=45)
                         st.plotly_chart(fig, use_container_width=True)
+            if daily_pivots:
+                st.write("Download All Pivot Tables as Excel")
+                excel_file = create_excel_file(daily_pivots)
+                st.download_button(
+                    label="Download Excel File",
+                    data=excel_file,
+                    file_name="dwell_and_compliance_daily_pivots.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
         with st.expander("Weekly Breakdown"):
+
+            weekly_pivots = {}
+
             st.write("The visualizations below show the weekly breakdown of on-time and late shipments.")
 
             selected_week = st.number_input("Select Week for Weekly Dashboard", min_value=1, max_value=52, step=1)
@@ -344,6 +367,8 @@ with tabs[1]:
 
                     with col1:
                         trend_data = weekly_filtered_df.groupby(['Scheduled Date', 'Compliance']).size().unstack(fill_value=0).reset_index()
+
+                        weekly_pivots['Weekly On Time Compliance'] = trend_data
 
                         if view_option_weekly == 'Pivot Tables':
                             st.subheader("On Time Compliance by Date (Weekly)")
@@ -393,6 +418,8 @@ with tabs[1]:
                         ).reset_index()
                         dwell_count_pivot_weekly['Grand Total'] = dwell_count_pivot_weekly.select_dtypes(include=[np.number]).sum(axis=1)
 
+                        weekly_pivots['Weekly Dwell Time Distribution'] = dwell_count_pivot_weekly
+
                         if view_option_weekly == 'Pivot Tables':
                             st.subheader("Weekly Count by Dwell Time")
                             st.table(dwell_count_pivot_weekly)
@@ -419,6 +446,8 @@ with tabs[1]:
                             columns='Compliance',
                             aggfunc='mean'
                         ).reset_index()
+
+                        weekly_pivots['Weekly Average Dwell Time'] = dwell_average_pivot_weekly
 
                         if view_option_weekly == 'Pivot Tables':
                             st.subheader("Average Dwell Time by Visit Type (Weekly)")
@@ -461,6 +490,8 @@ with tabs[1]:
                     carrier_pivot_weekly['On Time %'] = round((carrier_pivot_weekly.get('On Time', 0) / carrier_pivot_weekly['Grand Total']) * 100, 2)
                     carrier_pivot_weekly = carrier_pivot_weekly.sort_values(by='On Time %', ascending=False)
 
+                    weekly_pivots['Weekly Carrier Compliance'] = carrier_pivot_weekly
+
                     if view_option_weekly == 'Pivot Tables':
                         st.subheader("On Time Compliance by Carrier (Weekly)")
                         st.table(carrier_pivot_weekly)
@@ -475,8 +506,20 @@ with tabs[1]:
                         ))
                         fig.update_layout(title="On Time Compliance Percentage by Carrier (Weekly)", xaxis_tickangle=45)
                         st.plotly_chart(fig, use_container_width=True)
+            if weekly_pivots:
+                st.write("Download All Pivot Tables as Excel")
+                excel_file = create_excel_file(weekly_pivots)
+                st.download_button(
+                    label="Download Excel File",
+                    data=excel_file,
+                    file_name="dwell_and_compliance_weekly_pivots.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
         with st.expander("Monthly Breakdown"):
+
+            monthly_pivots = {}
+
             st.write("The visualizations below show the monthly breakdown of on-time and late shipments.")
 
             selected_month = st.number_input("Select Month for Monthly Dashboard", min_value=1, max_value=12, step=1)
@@ -500,6 +543,8 @@ with tabs[1]:
 
                     with col1:
                         trend_data = monthly_filtered_df.groupby(['Scheduled Date', 'Compliance']).size().unstack(fill_value=0).reset_index()
+
+                        monthly_pivots['Monthly On Time Compliance'] = trend_data
 
                         if view_option_monthly == 'Pivot Tables':
                             st.subheader("On Time Compliance by Date (Monthly)")
@@ -549,6 +594,8 @@ with tabs[1]:
                         ).reset_index()
                         dwell_count_pivot_monthly['Grand Total'] = dwell_count_pivot_monthly.select_dtypes(include=[np.number]).sum(axis=1)
 
+                        monthly_pivots['Monthly Dwell Time Distribution'] = dwell_count_pivot_monthly
+
                         if view_option_monthly == 'Pivot Tables':
                             st.subheader("Monthly Count by Dwell Time")
                             st.table(dwell_count_pivot_monthly)
@@ -575,6 +622,8 @@ with tabs[1]:
                             columns='Compliance',
                             aggfunc='mean'
                         ).reset_index()
+
+                        monthly_pivots['Monthly Dwell Time Average'] = dwell_average_pivot_monthly
 
                         if view_option_monthly == 'Pivot Tables':
                             st.subheader("Average Dwell Time by Visit Type (Monthly)")
@@ -617,6 +666,8 @@ with tabs[1]:
                     carrier_pivot_monthly['On Time %'] = round((carrier_pivot_monthly.get('On Time', 0) / carrier_pivot_monthly['Grand Total']) * 100, 2)
                     carrier_pivot_monthly = carrier_pivot_monthly.sort_values(by='On Time %', ascending=False)
 
+                    monthly_pivots['Monthly Carrier Compliance'] = carrier_pivot_monthly
+
                     if view_option_monthly == 'Pivot Tables':
                         st.subheader("On Time Compliance by Carrier (Monthly)")
                         st.table(carrier_pivot_monthly)
@@ -632,7 +683,20 @@ with tabs[1]:
                         fig.update_layout(title="On Time Compliance Percentage by Carrier (Monthly)", xaxis_tickangle=45)
                         st.plotly_chart(fig, use_container_width=True)
 
+            if monthly_pivots:
+                st.write("Download All Pivot Tables as Excel")
+                excel_file = create_excel_file(monthly_pivots)
+                st.download_button(
+                    label="Download Excel File",
+                    data=excel_file,
+                    file_name="dwell_and_compliance_monthly_pivots.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+
         with st.expander("YTD Breakdown"):
+
+            pivot_tables = {}
+        
             st.write("The visualizations below show the year-to-date breakdown of on-time and late shipments.")
 
             selected_shift_ytd = st.selectbox("Select Shift for Filtering", options=shift_options, key="ytd_shift_select")
@@ -652,6 +716,8 @@ with tabs[1]:
 
             monthly_avg['On Time Rounded'] = monthly_avg['On Time'].round() if 'On Time' in monthly_avg.columns else 0
             monthly_avg['Late Rounded'] = monthly_avg['Late'].round() if 'Late' in monthly_avg.columns else 0
+
+            pivot_tables['YTD On Time Compliance'] = monthly_avg[['Month', 'On Time', 'Late']]
 
             view_option_ytd = st.radio("Select view mode for YTD data:", ['Pivot Tables', 'Visualizations'], index=1)
 
@@ -711,6 +777,8 @@ with tabs[1]:
                 ).reset_index()
                 dwell_count_pivot_ytd['Grand Total'] = dwell_count_pivot_ytd.select_dtypes(include=[np.number]).sum(axis=1)
 
+                pivot_tables['YTD Dwell Time Distribution'] = dwell_count_pivot_ytd
+
                 if view_option_ytd == 'Pivot Tables':
                     st.subheader("YTD Count by Dwell Time")
                     st.table(dwell_count_pivot_ytd)
@@ -737,6 +805,8 @@ with tabs[1]:
                     columns='Compliance',
                     aggfunc='mean'
                 ).reset_index()
+
+                pivot_tables['YTD Average Dwell Time'] = dwell_average_pivot_ytd
 
                 if view_option_ytd == 'Pivot Tables':
                     st.subheader("Average Dwell Time by Visit Type (YTD)")
@@ -779,6 +849,8 @@ with tabs[1]:
             carrier_pivot_ytd['On Time %'] = round((carrier_pivot_ytd.get('On Time', 0) / carrier_pivot_ytd['Grand Total']) * 100, 2)
             carrier_pivot_ytd = carrier_pivot_ytd.sort_values(by='On Time %', ascending=False)
 
+            pivot_tables['YTD Carrier Compliance'] = carrier_pivot_ytd
+
             if view_option_ytd == 'Pivot Tables':
                 st.subheader("On Time Compliance by Carrier (YTD)")
                 st.table(carrier_pivot_ytd)
@@ -794,130 +866,270 @@ with tabs[1]:
                 fig.update_layout(title="On Time Compliance Percentage by Carrier (YTD)", xaxis_tickangle=45)
                 st.plotly_chart(fig, use_container_width=True)
 
-with tabs[2]:
+            if pivot_tables:
+                st.write("Download All Pivot Tables as Excel")
+                excel_file = create_excel_file(pivot_tables)
+                st.download_button(
+                    label="Download Excel File",
+                    data=excel_file,
+                    file_name="dwell_and_compliance_YTD_pivots.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
 
+with tabs[2]:
     if 'load_times' in st.session_state:
         st.header("Load Time Compliance Dashboard")
 
-        shift_filter = st.radio("Select Shift for Filtering", options=['All'] + list(load_times['Shift'].unique()))
-        order_type_filter = st.radio("Select Order Type for Filtering", options=['All'] + list(load_times['Order Type'].unique()))
+        load_times['Date'] = pd.to_datetime(load_times['Date'], format='%m/%d/%Y', errors='coerce')
 
         load_times['Compliance'] = load_times['Load Time (minutes)'].apply(lambda x: "Compliant" if x <= 90 else "Non-Compliant")
 
-        filtered_load_times = load_times.copy()
-        if shift_filter != 'All':
-            filtered_load_times = filtered_load_times[filtered_load_times['Shift'] == shift_filter]
-        if order_type_filter != 'All':
-            filtered_load_times = filtered_load_times[filtered_load_times['Order Type'] == order_type_filter]
+        date_filter_option = st.selectbox(
+            "Select Date Filter",
+            options=["YTD", "Date", "Week", "Month"]
+        )
 
-        st.write(f"Displaying data for Shift: **{shift_filter}** and Order Type: **{order_type_filter}**")
+        if date_filter_option == "YTD":
+            date_filtered_load_times = load_times
+        elif date_filter_option == "Date":
+            selected_date = st.date_input("Select a Date").strftime('%m/%d/%Y')
+            date_filtered_load_times = load_times[load_times['Date'] == pd.to_datetime(selected_date, format='%m/%d/%Y')]
+        elif date_filter_option == "Week":
+            selected_week = st.number_input("Select Week Number", min_value=1, max_value=53, step=1)
+            date_filtered_load_times = load_times[load_times['Week'] == selected_week]
+        elif date_filter_option == "Month":
+            selected_month = st.number_input("Select Month Number", min_value=1, max_value=12, step=1)
+            date_filtered_load_times = load_times[load_times['Month'] == selected_month]
 
-        compliance_rate = round(filtered_load_times['Compliance'].value_counts(normalize=True).get("Compliant", 0) * 100, 2)
+        if date_filtered_load_times.empty:
+            st.warning("No data available for the selected date filter. Please adjust your selection.")
+        else:
+            display_mode = st.radio("Select Display Mode", options=["Visualizations", "Pivot Tables"])
 
-        st.subheader(f"Load Time Compliance Rate: {compliance_rate}%")
+            filter_by = st.selectbox("Filter By", options=["Shift", "User"])
 
-        col1, col2, col3 = st.columns(3)
+            if filter_by == "Shift":
+                shift_filter = st.selectbox("Select Shift", options=["All"] + list(load_times['Shift'].unique()))
+            elif filter_by == "User":
+                user_filter = st.selectbox("Select User ID", options=["All"] + list(load_times['User Id'].unique()))
+            order_type_filter = st.selectbox("Select Order Type for Filtering", options=['All'] + list(load_times['Order Type'].unique()))
 
-        with col1:
-            fig1 = go.Figure(data=[go.Pie(
-                labels=filtered_load_times['Compliance'].value_counts().index,
-                values=filtered_load_times['Compliance'].value_counts().values,
-                hole=0.4,
-                marker=dict(colors=["green" if label == "Compliant" else "red" for label in filtered_load_times['Compliance'].value_counts().index])
-            )])
-            fig1.update_layout(title_text="Load Time Compliance (90 Minutes Target)")
-            st.plotly_chart(fig1, use_container_width=True)
+            filtered_load_times = date_filtered_load_times.copy()
+            if filter_by == "Shift" and shift_filter != "All":
+                filtered_load_times = filtered_load_times[filtered_load_times['Shift'] == shift_filter]
+            elif filter_by == "User" and user_filter != "All":
+                filtered_load_times = filtered_load_times[filtered_load_times['User Id'] == user_filter]
 
-        with col2:
-            max_load_time = filtered_load_times['Load Time (minutes)'].max()
-            bins = np.linspace(0, max_load_time, 30)
-            bin_centers = (bins[:-1] + bins[1:]) / 2
+            st.write(f"Displaying data for **{filter_by}**: **{'All' if (filter_by == 'Shift' and shift_filter == 'All') or (filter_by == 'User' and user_filter == 'All') else shift_filter if filter_by == 'Shift' else user_filter}**")
 
-            colors = ['green' if x <= 90 else 'red' for x in bin_centers]
+            compliance_rate = round(filtered_load_times['Compliance'].value_counts(normalize=True).get("Compliant", 0) * 100, 2)
 
-            fig2 = go.Figure()
+            st.subheader(f"Load Time Compliance Rate: {compliance_rate}%")
 
-            for i in range(len(bins) - 1):
-                bin_data = filtered_load_times[
-                    (filtered_load_times['Load Time (minutes)'] >= bins[i]) &
-                    (filtered_load_times['Load Time (minutes)'] < bins[i+1])
+            col1, col2, col3 = st.columns(3)
+
+            if display_mode == "Visualizations":
+                with col1:
+                    fig1 = go.Figure(data=[go.Pie(
+                        labels=filtered_load_times['Compliance'].value_counts().index,
+                        values=filtered_load_times['Compliance'].value_counts().values,
+                        hole=0.4,
+                        marker=dict(colors=["green" if label == "Compliant" else "red" for label in filtered_load_times['Compliance'].value_counts().index])
+                    )])
+                    fig1.update_layout(title_text="Load Time Compliance (90 Minutes Target)")
+                    st.plotly_chart(fig1, use_container_width=True)
+
+                with col2:
+                    max_load_time = filtered_load_times['Load Time (minutes)'].max()
+                    bins = np.linspace(0, max_load_time, 30)
+                    bin_centers = (bins[:-1] + bins[1:]) / 2
+
+                    colors = ['green' if x <= 90 else 'red' for x in bin_centers]
+
+                    fig2 = go.Figure()
+
+                    for i in range(len(bins) - 1):
+                        bin_data = filtered_load_times[
+                            (filtered_load_times['Load Time (minutes)'] >= bins[i]) &
+                            (filtered_load_times['Load Time (minutes)'] < bins[i+1])
+                        ]
+                        frequency = len(bin_data)
+
+                        fig2.add_trace(go.Bar(
+                            x=[(bins[i] + bins[i+1]) / 2],
+                            y=[frequency],
+                            marker=dict(
+                                color=colors[i],
+                                line=dict(color='black', width=0.5)
+                            ),
+                            text=f"{frequency}",
+                            textposition='outside',
+                            name=f'{bins[i]:.2f} - {bins[i+1]:.2f}',
+                            showlegend=False
+                        ))
+
+                    fig2.update_layout(
+                        title="Distribution of Load Times (Minutes) with Frequencies",
+                        xaxis_title="Load Time (minutes)",
+                        yaxis_title="Frequency",
+                        bargap=0.1 
+                    )
+                    st.plotly_chart(fig2, use_container_width=True)
+
+                with col3:
+                    avg_load_time_compliance = filtered_load_times.groupby('Compliance')['Load Time (minutes)'].mean().reset_index()
+                    fig3 = go.Figure(data=[go.Bar(
+                        x=avg_load_time_compliance['Compliance'],
+                        y=avg_load_time_compliance['Load Time (minutes)'],
+                        text=avg_load_time_compliance['Load Time (minutes)'].round(2),
+                        textposition='auto',
+                        marker_color=["green" if comp == "Compliant" else "red" for comp in avg_load_time_compliance['Compliance']]
+                    )])
+                    fig3.update_layout(
+                        title="Average Load Time by Compliance Status",
+                        xaxis_title="Compliance",
+                        yaxis_title="Average Load Time (minutes)"
+                    )
+                    st.plotly_chart(fig3, use_container_width=True)
+
+                compliance_by_shift_order = date_filtered_load_times.pivot_table(
+                    values='Order Num',
+                    index='Shift',
+                    columns='Compliance',
+                    aggfunc='count',
+                    fill_value=0
+                ).reset_index()
+
+                compliance_by_shift_order['Total'] = (
+                    compliance_by_shift_order['Compliant'] + compliance_by_shift_order['Non-Compliant']
+                )
+                compliance_by_shift_order['Compliance Rate (%)'] = round(
+                    (compliance_by_shift_order['Compliant'] / compliance_by_shift_order['Total']) * 100, 2
+                )
+
+                compliance_by_shift_order.sort_values('Compliance Rate (%)', ascending=False, inplace=True)
+
+                heatmap_text = [
+                    f"{row['Compliance Rate (%)']}%<br>out of {row['Total']} loads"
+                    for _, row in compliance_by_shift_order.iterrows()
                 ]
-                frequency = len(bin_data)
 
-                fig2.add_trace(go.Bar(
-                    x=[(bins[i] + bins[i+1]) / 2],
-                    y=[frequency],
-                    marker=dict(
-                        color=colors[i],
-                        line=dict(color='black', width=0.5)
-                    ),
-                    text=f"{frequency}",
-                    textposition='outside',
-                    name=f'{bins[i]:.2f} - {bins[i+1]:.2f}',
-                    showlegend=False
+                st.subheader("Compliance Rate Heatmap by Shift with Total Loads")
+                compliance_rates = compliance_by_shift_order['Compliance Rate (%)'].values.reshape(1, -1)
+
+                fig5 = go.Figure(data=go.Heatmap(
+                    z=compliance_rates,
+                    x=compliance_by_shift_order['Shift'],
+                    y=['Compliance Rate'],
+                    colorscale='RdYlGn',
+                    text=compliance_rates.round(2).astype(str) + "%",
+                    texttemplate="<b>%{text}</b>",
+                    textfont=dict(size=16),
+                    colorbar=dict(title="Compliance %")
                 ))
 
-            # Update layout
-            fig2.update_layout(
-                title="Distribution of Load Times (Minutes) with Frequencies",
-                xaxis_title="Load Time (minutes)",
-                yaxis_title="Frequency",
-                bargap=0.1 
-            )
+                fig5.update_layout(
+                    xaxis=dict(
+                        title="Shift",
+                        tickmode='array',
+                        tickvals=compliance_by_shift_order['Shift']
+                    ),
+                    yaxis=dict(
+                        title="",
+                        showticklabels=False 
+                    )
+                )
 
-            st.plotly_chart(fig2, use_container_width=True)
+                st.plotly_chart(fig5, use_container_width=True)
+
+            elif display_mode == "Pivot Tables":
+                with col1:
+                    compliance_pivot = filtered_load_times.pivot_table(
+                        values='Order Num',
+                        index='Compliance',
+                        aggfunc='count'
+                    ).reset_index()
+                    compliance_pivot.rename(columns={'Order Num': 'Count'}, inplace=True)
+                    total_orders = compliance_pivot['Count'].sum()
+                    compliance_pivot['Percentage (%)'] = round((compliance_pivot['Count'] / total_orders) * 100, 2)
+                    st.write("Compliance Distribution Pivot Table")
+                    st.dataframe(compliance_pivot)
+
+                with col2:
+                    # Bin edges for grouping load times
+                    max_load_time = filtered_load_times['Load Time (minutes)'].max()
+                    bins = np.linspace(0, max_load_time, 30)
+
+                    # Bin labels
+                    bin_labels = [f"{int(bins[i])} - {int(bins[i+1])}" for i in range(len(bins)-1)]
+
+                    # Assign bins to the load times
+                    filtered_load_times['Load Time Bin (minutes)'] = pd.cut(
+                        filtered_load_times['Load Time (minutes)'], 
+                        bins=bins, 
+                        labels=bin_labels, 
+                        include_lowest=True
+                    )
+
+                    # Create frequency table
+                    frequency_table = filtered_load_times.pivot_table(
+                        values='Order Num', 
+                        index='Load Time Bin (minutes)', 
+                        aggfunc='count', 
+                        fill_value=0
+                    ).rename(columns={'Order Num': 'Frequency'}).reset_index()
+
+                    # Add total row
+                    total_row = pd.DataFrame({
+                        'Load Time Bin (minutes)': ['Total'],
+                        'Frequency': [frequency_table['Frequency'].sum()]
+                    })
+
+                    # Append the total row
+                    frequency_table_with_total = pd.concat([frequency_table, total_row], ignore_index=True)
+
+                    # Display the modified table
+                    st.write("Load Times Statistics Pivot Table (Frequency Distribution)")
+                    st.dataframe(frequency_table_with_total)
+
+                with col3:
+                    avg_load_time_pivot = filtered_load_times.groupby('Compliance')['Load Time (minutes)'].mean().reset_index()
+                    avg_load_time_pivot.rename(columns={'Load Time (minutes)': 'Average Load Time'}, inplace=True)
+                    st.write("Average Load Time by Compliance Pivot Table")
+                    st.dataframe(avg_load_time_pivot)
+
+                compliance_by_shift_pivot = date_filtered_load_times.pivot_table(
+                    values='Order Num',
+                    index='Shift',
+                    columns='Compliance',
+                    aggfunc='count',
+                    fill_value=0
+                ).reset_index()
+                compliance_by_shift_pivot['Total'] = (
+                    compliance_by_shift_pivot['Compliant'] + compliance_by_shift_pivot['Non-Compliant']
+                )
+                compliance_by_shift_pivot['Compliance Rate (%)'] = round(
+                    (compliance_by_shift_pivot['Compliant'] / compliance_by_shift_pivot['Total']) * 100, 2
+                )
+                st.subheader("Compliance by Shift Pivot Table")
+                st.dataframe(compliance_by_shift_pivot)
+
+                pivot_tables = {
+                    "Compliance Distribution": compliance_pivot,
+                    "Load Times Statistics": frequency_table_with_total,
+                    "Average Load Time": avg_load_time_pivot,
+                    "Compliance by Shift": compliance_by_shift_pivot
+                }
+
+                st.write("Download Pivot Tables as Excel")
+                excel_file = create_excel_file(pivot_tables)
+                st.download_button(
+                    label="Download Excel File",
+                    data=excel_file,
+                    file_name="pivot_tables.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+           
 
 
-        with col3:
-            avg_load_time_compliance = filtered_load_times.groupby('Compliance')['Load Time (minutes)'].mean().reset_index()
-            fig3 = go.Figure(data=[go.Bar(
-                x=avg_load_time_compliance['Compliance'],
-                y=avg_load_time_compliance['Load Time (minutes)'],
-                text=avg_load_time_compliance['Load Time (minutes)'].round(2),
-                textposition='auto',
-                marker_color=["green" if comp == "Compliant" else "red" for comp in avg_load_time_compliance['Compliance']]
-            )])
-            fig3.update_layout(
-                title="Average Load Time by Compliance Status",
-                xaxis_title="Compliance",
-                yaxis_title="Average Load Time (minutes)"
-            )
-            st.plotly_chart(fig3, use_container_width=True)
 
-        compliance_by_shift_order = load_times.pivot_table(
-            values='Order Num',
-            index='Shift',
-            columns='Compliance',
-            aggfunc='count',
-            fill_value=0
-        ).reset_index()
-
-        compliance_by_shift_order['Total'] = (
-            compliance_by_shift_order['Compliant'] + compliance_by_shift_order['Non-Compliant']
-        )
-        compliance_by_shift_order['Compliance Rate (%)'] = round(
-            (compliance_by_shift_order['Compliant'] / compliance_by_shift_order['Total']) * 100, 2
-        )
-
-        compliance_by_shift_order = compliance_by_shift_order.sort_values(by='Compliance Rate (%)', ascending=False).reset_index(drop=True)
-
-        heatmap_text = [
-            f"{row['Compliance Rate (%)']}%<br>out of {row['Total']} loads"
-            for _, row in compliance_by_shift_order.iterrows()
-        ]
-
-        st.subheader("Compliance Rate Heatmap by Shift with Total Loads")
-
-        fig5 = go.Figure(data=go.Heatmap(
-            z=[compliance_by_shift_order['Compliance Rate (%)']],
-            x=compliance_by_shift_order['Shift'],
-            y=['Compliance Rate'],
-            colorscale='RdYlGn',
-            text=[heatmap_text],
-            texttemplate="%{text}"
-        ))
-        fig5.update_layout(
-            xaxis=dict(title="Shift", tickmode='array', tickvals=compliance_by_shift_order['Shift']),
-            yaxis=dict(title="Compliance Rate (%)", tickvals=['Compliance Rate'])
-        )
-        st.plotly_chart(fig5, use_container_width=True)
