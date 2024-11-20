@@ -102,7 +102,7 @@ with tabs[0]:
                 else:
                     dwell_time = None
 
-                if dwell_time is not None and dwell_time < 0:
+                if dwell_time is not None and dwell_time <= 0:
                     dwell_time = np.nan
 
                 return dwell_time
@@ -271,6 +271,9 @@ with tabs[1]:
                             aggfunc='mean'
                         ).reset_index()
 
+                        numeric_columns = dwell_average_pivot.select_dtypes(include=[np.number])
+                        dwell_average_pivot['Average'] = numeric_columns.mean(axis=1)
+
                         daily_pivots['Daily Average Dwell Time'] = dwell_average_pivot
 
                         if view_option == 'Pivot Tables':
@@ -368,6 +371,14 @@ with tabs[1]:
                     with col1:
                         trend_data = weekly_filtered_df.groupby(['Scheduled Date', 'Compliance']).size().unstack(fill_value=0).reset_index()
 
+                        trend_data['Total'] = trend_data.select_dtypes(include=[np.number]).sum(axis=1)
+
+                        if 'On Time' in trend_data.columns:
+                            trend_data['On Time %'] = (trend_data['On Time'] / trend_data['Total']) * 100
+                            trend_data['On Time %'] = trend_data['On Time %'].round(2)
+                        else:
+                            trend_data['On Time %'] = 0
+
                         weekly_pivots['Weekly On Time Compliance'] = trend_data
 
                         if view_option_weekly == 'Pivot Tables':
@@ -446,6 +457,9 @@ with tabs[1]:
                             columns='Compliance',
                             aggfunc='mean'
                         ).reset_index()
+
+                        numeric_columns = dwell_average_pivot_weekly.select_dtypes(include=[np.number])
+                        dwell_average_pivot_weekly['Average'] = numeric_columns.mean(axis=1)
 
                         weekly_pivots['Weekly Average Dwell Time'] = dwell_average_pivot_weekly
 
@@ -544,6 +558,14 @@ with tabs[1]:
                     with col1:
                         trend_data = monthly_filtered_df.groupby(['Scheduled Date', 'Compliance']).size().unstack(fill_value=0).reset_index()
 
+                        trend_data['Total'] = trend_data.select_dtypes(include=[np.number]).sum(axis=1)
+
+                        if 'On Time' in trend_data.columns:
+                            trend_data['On Time %'] = (trend_data['On Time'] / trend_data['Total']) * 100
+                            trend_data['On Time %'] = trend_data['On Time %'].round(2)
+                        else:
+                            trend_data['On Time %'] = 0
+
                         monthly_pivots['Monthly On Time Compliance'] = trend_data
 
                         if view_option_monthly == 'Pivot Tables':
@@ -623,6 +645,9 @@ with tabs[1]:
                             aggfunc='mean'
                         ).reset_index()
 
+                        numeric_columns = dwell_average_pivot_monthly.select_dtypes(include=[np.number])
+                        dwell_average_pivot_monthly['Average'] = numeric_columns.mean(axis=1)
+
                         monthly_pivots['Monthly Dwell Time Average'] = dwell_average_pivot_monthly
 
                         if view_option_monthly == 'Pivot Tables':
@@ -696,7 +721,7 @@ with tabs[1]:
         with st.expander("YTD Breakdown"):
 
             pivot_tables = {}
-        
+            
             st.write("The visualizations below show the year-to-date breakdown of on-time and late shipments.")
 
             selected_shift_ytd = st.selectbox("Select Shift for Filtering", options=shift_options, key="ytd_shift_select")
@@ -713,11 +738,20 @@ with tabs[1]:
 
             monthly_avg = trend_data.groupby('Month').mean(numeric_only=True).reset_index()
             monthly_avg['Month'] = monthly_avg['Month'].dt.to_timestamp()
+            monthly_avg['Month'] = monthly_avg['Month'].dt.strftime('%b %Y')
+
+            monthly_avg['Grand Total'] = monthly_avg[['On Time', 'Late']].sum(axis=1)
+
+            if 'On Time' in monthly_avg.columns:
+                monthly_avg['On Time %'] = (monthly_avg['On Time'] / monthly_avg['Grand Total']) * 100
+                monthly_avg['On Time %'] = monthly_avg['On Time %'].round(2) 
+            else:
+                monthly_avg['On Time %'] = 0  
 
             monthly_avg['On Time Rounded'] = monthly_avg['On Time'].round() if 'On Time' in monthly_avg.columns else 0
             monthly_avg['Late Rounded'] = monthly_avg['Late'].round() if 'Late' in monthly_avg.columns else 0
 
-            pivot_tables['YTD On Time Compliance'] = monthly_avg[['Month', 'On Time', 'Late']]
+            pivot_tables['YTD On Time Compliance'] = monthly_avg[['Month', 'On Time', 'Late', 'Grand Total', 'On Time %']]
 
             view_option_ytd = st.radio("Select view mode for YTD data:", ['Pivot Tables', 'Visualizations'], index=1)
 
@@ -725,8 +759,8 @@ with tabs[1]:
 
             with col1:
                 if view_option_ytd == 'Pivot Tables':
-                    st.subheader("Monthly Average Compliance (YTD)")
-                    st.write(monthly_avg[['Month', 'On Time', 'Late']])
+                    st.subheader("YTD Compliance")
+                    st.write(monthly_avg[['Month', 'On Time', 'Late', 'Grand Total', 'On Time %']])
                 else:
                     fig = go.Figure()
 
@@ -805,6 +839,9 @@ with tabs[1]:
                     columns='Compliance',
                     aggfunc='mean'
                 ).reset_index()
+
+                numeric_columns = dwell_average_pivot_ytd.select_dtypes(include=[np.number])
+                dwell_average_pivot_ytd['Average'] = numeric_columns.mean(axis=1)
 
                 pivot_tables['YTD Average Dwell Time'] = dwell_average_pivot_ytd
 
