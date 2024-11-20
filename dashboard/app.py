@@ -1052,18 +1052,15 @@ with tabs[2]:
                         fill_value=0
                     ).reset_index()
 
-                    # Ensure required columns exist
                     required_columns = ['Compliant', 'Non-Compliant']
                     for col in required_columns:
                         if col not in compliance_by_user.columns:
                             compliance_by_user[col] = 0
 
-                    # Calculate totals and compliance rate
                     compliance_by_user['Total'] = compliance_by_user['Compliant'] + compliance_by_user['Non-Compliant']
                     compliance_by_user['Compliance Rate (%)'] = round(
                         (compliance_by_user['Compliant'] / compliance_by_user['Total'].replace(0, 1)) * 100, 2
                     )
-
 
                     compliance_by_user['User Id'] = compliance_by_user['User Id'].astype(str)
 
